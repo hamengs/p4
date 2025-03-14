@@ -139,7 +139,7 @@ khugefree(char *v)
 
   struct run *r;
 
-  if((uint)v % HGSIZE || v < end || V2P(v) >= PHYSTOP)
+  if((uint)v % HGSIZE || v < end || V2P(v) >= HUGE_PAGE_END)
     panic("khugefree");
 
   // Fill with junk to catch dangling refs.
