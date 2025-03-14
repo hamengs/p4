@@ -8,6 +8,10 @@
 
 static void startothers(void);
 static void mpmain(void)  __attribute__((noreturn));
+
+void khugeinit1(void *vstart, void *vend); //extern in kalloc.c
+void khugeinit2(void *vstart, void *vend);
+
 extern pde_t *kpgdir;
 extern char end[]; // first address after kernel loaded from ELF file
 
