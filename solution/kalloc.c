@@ -10,6 +10,8 @@
 #include "spinlock.h"
 
 void freerange(void *vstart, void *vend);
+void freehugerange(void *vstart, void *vend);
+void khugefree(char *v);
 
 
 extern char end[]; // first address after kernel loaded from ELF file
@@ -99,6 +101,69 @@ kalloc(void)
 }
 
 
+// Allocate one 4MB page of physical memory.
 
+struct {
+  struct spinlock lock;
+  int use_lock;
+  struct run *freelist;
+} kmemhuge;
+
+void 
+khugeinit1(void *vstart, void *vend) {
+  initlock(&kmemhuge.lock, "kmemhuge");
+  kmemhuge.use_lock = 0;
+  freehugerange(vstart, vend);
+}
+
+void
+khugeinit2(void *vstart, void *vend)
+{
+  freehugerange(vstart, vend);
+  kmemhuge.use_lock = 1;
+}
+
+void 
+freehugerange(void *vstart, void *vend) {
+  char *p;
+  p = (char*)HUGEPGROUNDUP((uint)vstart);
+  for(; p + HGSIZE <= (char*)vend; p += HGSIZE)
+    khugefree(p);
+}
+
+void
+khugefree(char *v)
+{
+  struct run *r;
+
+  if((uint)v % HGSIZE || v < end || V2P(v) >= PHYSTOP)
+    panic("khugefree");
+
+  // Fill with junk to catch dangling refs.
+  memset(v, 1, HGSIZE);
+
+  if(kmemhuge.use_lock)
+    acquire(&kmemhuge.lock);
+  r = (struct run*)v;
+  r->next = kmemhuge.freelist;
+  kmemhuge.freelist = r;
+  if(kmemhuge.use_lock)
+    release(&kmemhuge.lock);
+}
+
+char*
+khugealloc(void)
+{
+  struct run *r;
+
+  if(kmemhuge.use_lock)
+    acquire(&kmemhuge.lock);
+  r = kmemhuge.freelist;
+  if(r)
+  kmemhuge.freelist = r->next;
+  if(kmemhuge.use_lock)
+    release(&kmemhuge.lock);
+  return (char*)r;
+}
 
 
