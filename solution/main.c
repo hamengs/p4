@@ -9,9 +9,6 @@
 static void startothers(void);
 static void mpmain(void)  __attribute__((noreturn));
 
-void khugeinit1(void *vstart, void *vend); //extern in kalloc.c
-void khugeinit2(void *vstart, void *vend);
-
 extern pde_t *kpgdir;
 extern char end[]; // first address after kernel loaded from ELF file
 
@@ -22,7 +19,6 @@ int
 main(void)
 {
   kinit1(end, P2V(4*1024*1024)); // phys page allocator
-  khugeinit1((void*)HUGE_PAGE_START, (void*)HUGE_PAGE_END); // huge page allocator
   kvmalloc();      // kernel page table
   mpinit();        // detect other processors
   lapicinit();     // interrupt controller
@@ -38,7 +34,6 @@ main(void)
   ideinit();       // disk 
   startothers();   // start other processors
   kinit2(P2V(4*1024*1024), P2V(PHYSTOP)); // must come after startothers()
-  khugeinit2((void*)HUGE_PAGE_START, (void*)HUGE_PAGE_END); // huge page allocator
   userinit();      // first user process
   mpmain();        // finish this processor's setup
 }
