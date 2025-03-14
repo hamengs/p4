@@ -19,3 +19,6 @@
 #define HUGE_PAGE_START 0x1E000000  // Start of reserved region - 480 MB
 #define HUGE_PAGE_END   0x3E000000  // End of reserved region - 992 MB
 #define HUGE_PAGE_SIZE  0x400000    // 4MB
+
+#define HUGE_PAGE_VSTART P2V(HUGE_PAGE_START)
+#define HUGE_PAGE_VEND   P2V(HUGE_PAGE_END) //HUGE_PAGE_START + KERNBASE
