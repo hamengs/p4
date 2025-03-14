@@ -111,14 +111,15 @@ struct {
 
 void 
 khugeinit1(void *vstart, void *vend) {
+  cprintf("khugeinit1: vstart = %p, vend = %p\n", vstart, vend);
   initlock(&kmemhuge.lock, "kmemhuge");
   kmemhuge.use_lock = 0;
   freehugerange(vstart, vend);
 }
 
 void
-khugeinit2(void *vstart, void *vend)
-{
+khugeinit2(void *vstart, void *vend){
+  cprintf("khugeinit2: vstart = %p, vend = %p\n", vstart, vend);
   freehugerange(vstart, vend);
   kmemhuge.use_lock = 1;
 }
@@ -134,6 +135,8 @@ freehugerange(void *vstart, void *vend) {
 void
 khugefree(char *v)
 {
+  cprintf("khugefree: freeing page at %p, alignment %%HGSIZE = %d, phys addr = %p\n", v, (uint)v % HGSIZE, V2P(v));
+
   struct run *r;
 
   if((uint)v % HGSIZE || v < end || V2P(v) >= PHYSTOP)
@@ -163,6 +166,7 @@ khugealloc(void)
   kmemhuge.freelist = r->next;
   if(kmemhuge.use_lock)
     release(&kmemhuge.lock);
+  cprintf("khugealloc: allocated huge page at %p (alignment %%HGSIZE = %d)\n", r, (uint)r % HGSIZE);  
   return (char*)r;
 }
 
