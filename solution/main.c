@@ -22,6 +22,7 @@ int
 main(void)
 {
   kinit1(end, P2V(4*1024*1024)); // phys page allocator
+  cprintf("After kinit1: end = %p\n", end);
   khugeinit1((void*)HUGE_PAGE_VSTART, (void*)HUGE_PAGE_VEND); // huge page allocator
   kvmalloc();      // kernel page table
   mpinit();        // detect other processors
