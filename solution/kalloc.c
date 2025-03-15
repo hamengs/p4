@@ -114,7 +114,8 @@ khugeinit(void *vstart, void *vend)
 {
   cprintf("khugeinit: vstart = %p, vend = %p\n", vstart, vend);
   initlock(&kmemhuge.lock, "kmemhuge");
-  kmemhuge.use_lock = 1;  
+  kmemhuge.use_lock = 1;
+  kmemhuge.freelist = 0;
   freehugerange(vstart, vend);
 }
 
@@ -122,22 +123,22 @@ void
 freehugerange(void *vstart, void *vend) {
   char *p;
   p = (char*)HUGEPGROUNDUP((uint)vstart);
-  for(; p + HGSIZE <= (char*)vend; p += HGSIZE)
+  for(; p + HUGE_PAGE_SIZE <= (char*)vend; p += HUGE_PAGE_SIZE)
     khugefree(p);
 }
 
 void
 khugefree(char *v)
 {
-  cprintf("khugefree: freeing page at %p, alignment %%HGSIZE = %d, phys addr = %p\n", v, (uint)v % HGSIZE, V2P(v));
+  cprintf("khugefree: freeing page at %p, alignment %%HUGE_PAGE_SIZE = %d, phys addr = %p\n", v, (uint)v % HUGE_PAGE_SIZE, V2P(v));
 
   struct run *r;
 
-  if((uint)v % HGSIZE || v < end || V2P(v) >= HUGE_PAGE_END)
+  if((uint)v % HUGE_PAGE_SIZE || v < end || V2P(v) >= HUGE_PAGE_END)
     panic("khugefree");
 
   // Fill with junk to catch dangling refs.
-  //memset(v, 1, HGSIZE);
+  //memset(v, 1, HUGE_PAGE_SIZE);
 
   if(kmemhuge.use_lock)
     acquire(&kmemhuge.lock);
@@ -160,7 +161,7 @@ khugealloc(void)
   kmemhuge.freelist = r->next;
   if(kmemhuge.use_lock)
     release(&kmemhuge.lock);
-  cprintf("khugealloc: allocated huge page at %p (alignment %%HGSIZE = %d)\n", r, (uint)r % HGSIZE);  
+  cprintf("khugealloc: allocated huge page at %p (alignment %%HUGE_PAGE_SIZE = %d)\n", r, (uint)r % HUGE_PAGE_SIZE);  
   return (char*)r;
 }
 
