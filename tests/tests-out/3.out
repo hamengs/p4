@@ -1,0 +1,4 @@
+XV6_TEST_OUTPUT After first umalloc, 100 bytes - program base pages:8 huge pages:0
+XV6_TEST_OUTPUT After second umalloc, 5000 bytes - program base pages:8 huge pages:0
+XV6_TEST_OUTPUT After third umalloc, 4MB - program base pages:1033 huge pages:0
+XV6_TEST_OUTPUT After freeing data - program base pages:1033 huge pages:0

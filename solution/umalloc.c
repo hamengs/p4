@@ -88,3 +88,29 @@ malloc(uint nbytes)
         return 0;
   }
 }
+
+void *
+vmalloc(uint n, int flag)
+{
+    void *ptr;
+    if(flag != VMALLOC_SIZE_BASE && flag != VMALLOC_SIZE_HUGE){
+        printf(1, "Error flag init (vmalloc)\n");
+        exit();
+    }
+    if(flag == VMALLOC_SIZE_BASE)
+        ptr = sbrk(n);
+    else
+        ptr = sbrkhuge(n);
+    if(ptr == (void*)-1)
+        return 0;
+    return ptr;
+}
+
+void
+vfree(void *ptr)
+{
+    if((uint)ptr >= KERNBASE){
+        printf(1, "Error trying to free kernel pointer (vfree)\n");
+        exit();
+    }
+}

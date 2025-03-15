@@ -10,7 +10,9 @@
 #include "spinlock.h"
 
 void freerange(void *vstart, void *vend);
-
+void khugeinit(void);
+void khugefree(char *v);
+char* khugealloc(void);
 
 extern char end[]; // first address after kernel loaded from ELF file
                    // defined by the kernel linker script in kernel.ld
@@ -25,6 +27,11 @@ struct {
   struct run *freelist;
 } kmem;
 
+static struct {
+  struct spinlock lock;
+  int use_lock;
+  struct run *freelist;
+} khugemem;
 // Initialization happens in two phases.
 // 1. main() calls kinit1() while still using entrypgdir to place just
 // the pages mapped by entrypgdir on free list.
@@ -98,7 +105,63 @@ kalloc(void)
   return (char*)r;
 }
 
+void
+khugeinit(void)
+{
+  char *p;
 
+  initlock(&khugemem.lock, "khugemem");
+  khugemem.use_lock = 1;
 
+  p = (char*)PGROUNDUP(HUGE_PAGE_START);
+  acquire(&khugemem.lock);
+  for(; p + HUGE_PAGE_SIZE <= (char*)HUGE_PAGE_END; p += HUGE_PAGE_SIZE)
+    khugefree(p);
+  release(&khugemem.lock);
+}
 
+void
+khugefree(char *v)
+{
+  struct run *r;
 
+  if (((uint)v % HUGE_PAGE_SIZE) || v < (char*)HUGE_PAGE_START || v + HUGE_PAGE_SIZE > (char*)HUGE_PAGE_END)
+    panic("invalid huge page ptr (khugefree)");
+
+  memset(v, 1, HUGE_PAGE_SIZE);
+
+  r = (struct run*)v;
+  if(khugemem.use_lock)
+    acquire(&khugemem.lock);
+  r->next = khugemem.freelist;
+  khugemem.freelist = r;
+  if(khugemem.use_lock)
+    release(&khugemem.lock);
+}
+
+char*
+khugealloc(void)
+{
+  struct run *r;
+
+  if(khugemem.use_lock)
+  {
+    acquire(&khugemem.lock);
+  }
+  r = khugemem.freelist;
+  if(r)
+  {
+    khugemem.freelist = r->next;
+  }
+  if(khugemem.use_lock)
+  {
+    release(&khugemem.lock);
+  }
+
+  if(r)
+  {
+    memset((char*)r, 5, HUGE_PAGE_SIZE);
+    return (char*)r;
+  }
+  return 0;
+}

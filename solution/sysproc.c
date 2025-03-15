@@ -7,6 +7,10 @@
 #include "mmu.h"
 #include "proc.h"
 
+int enable = 0;
+int allocuvm_huge(pde_t *pgdir, uint oldsz, uint newsz);
+int deallocuvm_huge(pde_t *pgdir, uint oldsz, uint newsz);
+
 int
 sys_fork(void)
 {
@@ -130,4 +134,41 @@ sys_procpgdirinfo()
   buf[0] = base_cnt; // base page count
   buf[1] = huge_cnt; // huge page count
   return 0;
+}
+
+int
+sys_setthp(void)
+{
+  int flag;
+  if(argint(0, &flag) < 0)
+    return -1;
+  enable = flag ? 1 : 0;
+  return 0;
+}
+
+int
+sys_getthp(void)
+{
+  return enable;
+}
+
+int
+sys_sbrkhuge(void)
+{
+  int n;
+  int addr;
+  struct proc *curproc = myproc();
+  if(argint(0, &n) < 0)
+    return -1;
+  addr = curproc->hugesz;
+  if(n > 0){
+    if((addr = allocuvm_huge(curproc->pgdir, curproc->hugesz, curproc->hugesz + n)) == 0)
+      return -1;
+    curproc->hugesz += n;
+  } else if(n < 0){
+    addr = deallocuvm_huge(curproc->pgdir, curproc->hugesz, curproc->hugesz + n);
+    curproc->hugesz += n;
+  }
+  switchuvm(curproc);
+  return addr;
 }

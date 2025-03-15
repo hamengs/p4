@@ -25,6 +25,17 @@ int sleep(int);
 int uptime(void);
 int printhugepde(void);
 int procpgdirinfo(int*);
+int setthp(int);
+int getthp(void);
+
+#define VMALLOC_SIZE_BASE 0
+#define VMALLOC_SIZE_HUGE 1
+#define KERNBASE 0x80000000
+
+char* sbrkhuge(int);
+void *vmalloc(uint, int);
+void vfree(void*);
+
 
 // ulib.c
 int stat(const char*, struct stat*);

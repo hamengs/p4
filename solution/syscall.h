@@ -22,3 +22,6 @@
 #define SYS_close  21
 #define SYS_printhugepde 22
 #define SYS_procpgdirinfo 23
+#define SYS_setthp 24
+#define SYS_getthp 25
+#define SYS_sbrkhuge 26

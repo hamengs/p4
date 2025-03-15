@@ -391,4 +391,49 @@ copyout(pde_t *pgdir, uint va, void *p, uint len)
 // Blank page.
 //PAGEBREAK!
 // Blank page.
+int
+allocuvm_huge(pde_t *pgdir, uint oldsz, uint newsz)
+{
+  char *a;
+  uint sz;
 
+  if(newsz >= KERNBASE)
+    return 0;
+  sz = PGROUNDDOWN(oldsz);
+  for(; sz < newsz; sz += HUGE_PAGE_SIZE){
+    a = khugealloc();
+    if(a == 0){
+      deallocuvm_huge(pgdir, newsz, oldsz);
+      cprintf("allocuvm out of memory (allocuvm_huge)\n");
+      return 0;
+    }
+    memset(a, 0, HUGE_PAGE_SIZE);
+    if(mappages(pgdir, (char*)sz, HUGE_PAGE_SIZE, V2P(a), PTE_W|PTE_U|PTE_PS) < 0){
+      deallocuvm_huge(pgdir, newsz, oldsz);
+      khugefree(a);
+      cprintf("allocuvm out of memory (allocuvm_huge)\n");
+      return 0;
+    }
+  }
+  return newsz;
+}
+
+int
+deallocuvm_huge(pde_t *pgdir, uint oldsz, uint newsz)
+{
+  uint a, pa;
+  pte_t *pte;
+
+  if(newsz >= oldsz)
+    return oldsz;
+  a = PGROUNDDOWN(newsz);
+  for(; a < oldsz; a += HUGE_PAGE_SIZE){
+    pte = walkpgdir(pgdir, (char*)a, 0);
+    if(pte && (*pte & PTE_P)){
+      pa = PTE_ADDR(*pte);
+      *pte = 0;
+      khugefree((char*)P2V(pa));
+    }
+  }
+  return newsz;
+}
