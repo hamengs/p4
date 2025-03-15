@@ -110,12 +110,15 @@ struct {
 } kmemhuge;
 
 void
-khugeinit(void *vstart, void *vend)
+khugeinit_early(void)
 {
-  cprintf("khugeinit: vstart = %p, vend = %p\n", vstart, vend);
   initlock(&kmemhuge.lock, "kmemhuge");
   kmemhuge.use_lock = 1;
   kmemhuge.freelist = 0;
+  
+}
+
+void khugeinit_late(void *vstart, void *vend) {
   freehugerange(vstart, vend);
 }
 

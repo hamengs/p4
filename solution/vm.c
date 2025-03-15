@@ -173,7 +173,7 @@ kvmalloc(void)
 pde_t *
 kvmallochuge(void)
 {
-  pde_t *kpgdir;
+  pde_t *pgdir = kpgdir;
   uint pa, va;
 
 
@@ -195,6 +195,7 @@ kvmallochuge(void)
       panic("kvmallochuge: out of memory");
     }
   }
+  khugeinit_late((void*)HUGE_PAGE_VSTART, (void*)HUGE_PAGE_VEND);
   return kpgdir;
 }
 
