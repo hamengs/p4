@@ -8,6 +8,7 @@
 #include "elf.h"
 
 extern char* khugealloc(void);
+void khugeinit_late(void *start, void *end);
 
 
 extern char data[];  // defined by kernel.ld
