@@ -9,7 +9,6 @@
 static void startothers(void);
 static void mpmain(void)  __attribute__((noreturn));
 void khugeinit_early(); 
-void khugeinit_late(void *vstart, void *vend); //extern in kalloc.c
 pde_t* kvmallochuge(void); // kernel huge page table
 
 
@@ -41,7 +40,6 @@ main(void)
   kinit2(P2V(4*1024*1024), P2V(PHYSTOP)); // must come after startothers()
   khugeinit_early(); // huge page allocator
   kvmallochuge();
-  khugeinit_late((void*)HUGE_PAGE_VSTART, (void*)HUGE_PAGE_VEND); // Now add to free list
   userinit();      // first user process
   mpmain();        // finish this processor's setup
 }

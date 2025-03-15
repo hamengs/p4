@@ -169,34 +169,31 @@ kvmalloc(void)
   switchkvm();
 }
 
-//kvmallochuge allocates a page table for the kernel address space
 pde_t *
 kvmallochuge(void)
 {
-  pde_t *pgdir = kpgdir;
+  // Use existing page directory or allocate using regular kalloc
+  pde_t *pgdir = kpgdir;  // Use existing kernel page directory
   uint pa, va;
 
-
-  kpgdir = (pde_t*)khugealloc();
-  if(kpgdir == 0)
-    panic("kvmallochuge: out of memory");
-  memset(kpgdir, 0, HGSIZE);
-
+  // Don't use khugealloc() here since it's not initialized yet
+  // Instead, either use the existing pgdir or use kalloc() 
 
   if(P2V(HUGE_PAGE_END) > (void*)DEVSPACE)
     panic("HUGE_PAGE_END too high");
 
-  
-  for(pa = HUGE_PAGE_START; pa < HUGE_PAGE_END; pa += HGSIZE) {
-   
+  // Map the huge pages in the kernel page directory
+  for(pa = HUGE_PAGE_START; pa < HUGE_PAGE_END; pa += HUGE_PAGE_SIZE) {
     va = pa + KERNBASE;
-    if(mappageshuge(kpgdir, (void*)va, HGSIZE, pa, PTE_W) < 0) {
-      freevm(kpgdir);
+    if(mappageshuge(pgdir, (void*)va, HUGE_PAGE_SIZE, pa, PTE_W) < 0) {
       panic("kvmallochuge: out of memory");
     }
   }
+  
+  
   khugeinit_late((void*)HUGE_PAGE_VSTART, (void*)HUGE_PAGE_VEND);
-  return kpgdir;
+  
+  return pgdir;  // Return the updated page directory
 }
 
 
