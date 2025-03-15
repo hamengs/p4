@@ -19,12 +19,12 @@ extern char end[]; // first address after kernel loaded from ELF file
 // Bootstrap processor starts running C code here.
 // Allocate a real stack and switch to it, first
 // doing some setup required for memory allocator to work.
+//
 int
 main(void)
 {
   kinit1(end, P2V(4*1024*1024)); // phys page allocator
   kvmalloc();      // kernel page table
-  kvmallochuge();  // kernel huge page table
   mpinit();        // detect other processors
   lapicinit();     // interrupt controller
   seginit();       // segment descriptors
@@ -40,6 +40,7 @@ main(void)
   startothers();   // start other processors
   kinit2(P2V(4*1024*1024), P2V(PHYSTOP)); // must come after startothers()
   khugeinit((void*)HUGE_PAGE_VSTART, (void*)HUGE_PAGE_VEND); // huge page allocator
+  kvmallochuge();
   userinit();      // first user process
   mpmain();        // finish this processor's setup
 }
