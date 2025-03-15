@@ -95,9 +95,9 @@ mappageshuge(pde_t *pgdir, void *va, uint size, uint pa, int perm)
   for(;;){
     if((pte = walkpgdir(pgdir, a, 1)) == 0)
       return -1;
-    // if(*pte & PTE_P){
-    //   panic("remap");
-    // }
+     if(*pte & PTE_P){
+       panic("remap");
+     }
     *pte = pa | perm | PTE_P | PTE_PS;
     if(a == last)
       break;
@@ -187,7 +187,7 @@ kvmallochuge(void)
 
   // Map the huge pages in the kernel page directory
   for(pa = HUGE_PAGE_START; pa < HUGE_PAGE_END; pa += HUGE_PAGE_SIZE) {
-    va = pa + KERNBASE;
+    va = (pa - HUGE_PAGE_START) + HUGE_VA_OFFSET;
     if(mappageshuge(pgdir, (void*)va, HUGE_PAGE_SIZE, pa, PTE_W) < 0) {
       panic("kvmallochuge: out of memory");
     }
