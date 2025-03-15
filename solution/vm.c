@@ -79,6 +79,28 @@ mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm)
   return 0;
 }
 
+static int
+mappageshuge(pde_t *pgdir, void *va, uint size, uint pa, int perm)
+{
+  char *a, *last;
+  pte_t *pte;
+
+  a = (char*)HUGEPGROUNDUP((uint)va);
+  last = (char*)HUGEPGROUNDUP(((uint)va) + size - 1);
+  for(;;){
+    if((pte = walkpgdir(pgdir, a, 1)) == 0)
+      return -1;
+    if(*pte & PTE_P)
+      panic("remap");
+    *pte = pa | perm | PTE_P | PTE_PS;
+    if(a == last)
+      break;
+    a += HGSIZE;
+    pa += HGSIZE;
+  }
+  return 0;
+}
+
 // There is one page table per process, plus one that's used when
 // a CPU is not running any process (kpgdir). The kernel uses the
 // current process's page table during system calls and interrupts;
@@ -143,6 +165,36 @@ kvmalloc(void)
   kpgdir = setupkvm();
   switchkvm();
 }
+
+//kvmallochuge allocates a page table for the kernel address space
+pde_t *
+kvmallochuge(void)
+{
+  pde_t *kpgdir;
+  uint pa, va;
+
+
+  kpgdir = (pde_t*)khugealloc();
+  if(kpgdir == 0)
+    panic("kvmallochuge: out of memory");
+  memset(kpgdir, 0, HGSIZE);
+
+
+  if(P2V(HUGE_PAGE_END) > (void*)DEVSPACE)
+    panic("HUGE_PAGE_END too high");
+
+  
+  for(pa = HUGE_PAGE_START; pa < HUGE_PAGE_END; pa += HGSIZE) {
+   
+    va = pa + KERNBASE;
+    if(mappageshuge(kpgdir, (void*)va, HGSIZE, pa, PTE_W) < 0) {
+      freevm(kpgdir);
+      panic("kvmallochuge: out of memory");
+    }
+  }
+  return kpgdir;
+}
+
 
 // Switch h/w page table register to the kernel-only page table,
 // for when no process is running.
