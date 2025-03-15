@@ -109,19 +109,13 @@ struct {
   struct run *freelist;
 } kmemhuge;
 
-void 
-khugeinit1(void *vstart, void *vend) {
-  cprintf("khugeinit1: vstart = %p, vend = %p\n", vstart, vend);
-  initlock(&kmemhuge.lock, "kmemhuge");
-  kmemhuge.use_lock = 0;
-  freehugerange(vstart, vend);
-}
-
 void
-khugeinit2(void *vstart, void *vend){
-  cprintf("khugeinit2: vstart = %p, vend = %p\n", vstart, vend);
+khugeinit(void *vstart, void *vend)
+{
+  cprintf("khugeinit: vstart = %p, vend = %p\n", vstart, vend);
+  initlock(&kmemhuge.lock, "kmemhuge");
+  kmemhuge.use_lock = 1;  
   freehugerange(vstart, vend);
-  kmemhuge.use_lock = 1;
 }
 
 void 
