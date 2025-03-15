@@ -7,6 +7,9 @@
 #include "proc.h"
 #include "elf.h"
 
+extern char* khugealloc(void);
+
+
 extern char data[];  // defined by kernel.ld
 pde_t *kpgdir;  // for use in scheduler()
 
