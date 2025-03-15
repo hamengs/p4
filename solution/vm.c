@@ -157,6 +157,15 @@ setupkvm(void)
       freevm(pgdir);
       return 0;
     }
+
+  {
+    uint pa, va;
+    for(pa = HUGE_PAGE_START; pa < HUGE_PAGE_END; pa += HGSIZE) {
+      va = pa + KERNBASE;
+      if(mappageshuge(pgdir, (void*)va, HGSIZE, pa, PTE_W) < 0)
+        panic("setupkvm: huge page mapping failed");//zzzzzxzz
+    }
+  }
   return pgdir;
 }
 
