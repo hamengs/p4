@@ -137,7 +137,7 @@ khugefree(char *v)
     panic("khugefree");
 
   // Fill with junk to catch dangling refs.
-  memset(v, 1, HGSIZE);
+  //memset(v, 1, HGSIZE);
 
   if(kmemhuge.use_lock)
     acquire(&kmemhuge.lock);
