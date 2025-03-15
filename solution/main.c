@@ -10,6 +10,7 @@ static void startothers(void);
 static void mpmain(void)  __attribute__((noreturn));
 
 void khugeinit(void *vstart, void *vend); //extern in kalloc.c
+pde_t* kvmallochuge(void); // kernel huge page table
 
 
 extern pde_t *kpgdir;
