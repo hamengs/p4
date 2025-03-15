@@ -140,8 +140,8 @@ khugefree(char *v)
   if((uint)v % HUGE_PAGE_SIZE || v < end || V2P(v) >= HUGE_PAGE_END)
     panic("khugefree");
 
-  // Fill with junk to catch dangling refs.
-  //memset(v, 1, HUGE_PAGE_SIZE);
+  //Fill with junk to catch dangling refs.
+  memset(v, 1, HUGE_PAGE_SIZE);
 
   if(kmemhuge.use_lock)
     acquire(&kmemhuge.lock);
