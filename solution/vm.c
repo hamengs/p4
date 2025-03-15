@@ -95,6 +95,7 @@ mappageshuge(pde_t *pgdir, void *va, uint size, uint pa, int perm)
     if((pte = walkpgdir(pgdir, a, 1)) == 0)
       return -1;
     if(*pte & PTE_P)
+      cprintf("mappageshuge: remap at va=%p, pa=%p\n", a, pa);
       panic("remap");
     *pte = pa | perm | PTE_P | PTE_PS;
     if(a == last)
