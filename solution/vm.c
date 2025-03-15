@@ -9,6 +9,10 @@
 
 extern char data[];  // defined by kernel.ld
 pde_t *kpgdir;  // for use in scheduler()
+extern char* khugealloc(void);
+extern void khugefree(char *v);
+extern int deallocuvm_huge(pde_t *pgdir, uint oldsz, uint newsz);
+
 
 // Set up CPU's kernel segment descriptors.
 // Run once on entry on each CPU.
@@ -395,45 +399,40 @@ int
 allocuvm_huge(pde_t *pgdir, uint oldsz, uint newsz)
 {
   char *a;
-  uint sz;
+  uint va;
 
   if(newsz >= KERNBASE)
     return 0;
-  sz = PGROUNDDOWN(oldsz);
-  for(; sz < newsz; sz += HUGE_PAGE_SIZE){
-    a = khugealloc();
-    if(a == 0){
-      deallocuvm_huge(pgdir, newsz, oldsz);
-      cprintf("allocuvm out of memory (allocuvm_huge)\n");
-      return 0;
-    }
-    memset(a, 0, HUGE_PAGE_SIZE);
-    if(mappages(pgdir, (char*)sz, HUGE_PAGE_SIZE, V2P(a), PTE_W|PTE_U|PTE_PS) < 0){
-      deallocuvm_huge(pgdir, newsz, oldsz);
-      khugefree(a);
-      cprintf("allocuvm out of memory (allocuvm_huge)\n");
-      return 0;
-    }
+
+  va = oldsz;
+  a = khugealloc();
+  if(a == 0){
+    cprintf("hugealloc - allocuvm out of memory\n");
+    return 0;
   }
+  
+  pde_t *pde = &pgdir[PDX(va)];
+  if(*pde & PTE_P)
+    panic("hugepage - remap");
+  *pde = V2P(a) | PTE_W | PTE_U | PTE_PS | PTE_P;
   return newsz;
 }
 
 int
 deallocuvm_huge(pde_t *pgdir, uint oldsz, uint newsz)
 {
-  uint a, pa;
-  pte_t *pte;
+  uint va;
+  pde_t *pde;
 
   if(newsz >= oldsz)
     return oldsz;
-  a = PGROUNDDOWN(newsz);
-  for(; a < oldsz; a += HUGE_PAGE_SIZE){
-    pte = walkpgdir(pgdir, (char*)a, 0);
-    if(pte && (*pte & PTE_P)){
-      pa = PTE_ADDR(*pte);
-      *pte = 0;
-      khugefree((char*)P2V(pa));
-    }
-  }
+  
+  va = PGROUNDDOWN(oldsz);
+  pde = &pgdir[PDX(va)];
+  if(!(*pde & PTE_PS))
+    panic("deallocuvm_huge: not a huge page mapping");
+  
+  khugefree((char*)P2V(*pde & ~0xFFF));
+  *pde = 0;
   return newsz;
 }
