@@ -1,4 +1,0 @@
-expect: spawn id exp5 not open
-    while executing
-"expect "$ ""
-    (file "../tests/run-xv6-command.exp" line 25)

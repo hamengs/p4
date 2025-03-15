@@ -398,41 +398,40 @@ copyout(pde_t *pgdir, uint va, void *p, uint len)
 int
 allocuvm_huge(pde_t *pgdir, uint oldsz, uint newsz)
 {
-  char *a;
-  uint va;
-
   if(newsz >= KERNBASE)
     return 0;
 
-  va = oldsz;
-  a = khugealloc();
-  if(a == 0){
+  uint va = oldsz;
+  char *kptr = khugealloc();
+  if(kptr == 0){
     cprintf("hugealloc - allocuvm out of memory\n");
     return 0;
   }
-  
+
+  uint pa = V2P(kptr);
+
   pde_t *pde = &pgdir[PDX(va)];
   if(*pde & PTE_P)
     panic("hugepage - remap");
-  *pde = V2P(a) | PTE_W | PTE_U | PTE_PS | PTE_P;
+
+  *pde = (pa & ~0xFFF) | PTE_P | PTE_W | PTE_U | PTE_PS;
+  
   return newsz;
 }
 
 int
 deallocuvm_huge(pde_t *pgdir, uint oldsz, uint newsz)
 {
-  uint va;
-  pde_t *pde;
-
   if(newsz >= oldsz)
     return oldsz;
-  
-  va = PGROUNDDOWN(oldsz);
-  pde = &pgdir[PDX(va)];
-  if(!(*pde & PTE_PS))
-    panic("deallocuvm_huge: not a huge page mapping");
-  
-  khugefree((char*)P2V(*pde & ~0xFFF));
-  *pde = 0;
+
+  uint va = PGROUNDDOWN(oldsz - 1);
+  pde_t *pde = &pgdir[PDX(va)];
+  if((*pde & PTE_PS) && (*pde & PTE_P)){
+    uint pa = *pde & ~0xFFF;
+    khugefree((char*)P2V(pa));
+    *pde = 0;
+  }
   return newsz;
 }
+

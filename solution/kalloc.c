@@ -108,15 +108,14 @@ kalloc(void)
 void
 khugeinit(void)
 {
-  char *p;
-
   initlock(&khugemem.lock, "khugemem");
   khugemem.use_lock = 1;
 
-  p = (char*)PGROUNDUP(HUGE_PAGE_START);
+  char *p = (char*)PGROUNDUP(HUGE_PAGE_START);
   acquire(&khugemem.lock);
-  for(; p + HUGE_PAGE_SIZE <= (char*)HUGE_PAGE_END; p += HUGE_PAGE_SIZE)
-    khugefree(p);
+  for(; p + HUGE_PAGE_SIZE <= (char*)HUGE_PAGE_END; p += HUGE_PAGE_SIZE){
+    khugefree(P2V(p));
+  }
   release(&khugemem.lock);
 }
 
@@ -124,13 +123,15 @@ void
 khugefree(char *v)
 {
   struct run *r;
+  uint pa = V2P(v);
 
-  if (((uint)v % HUGE_PAGE_SIZE) || v < (char*)HUGE_PAGE_START || v + HUGE_PAGE_SIZE > (char*)HUGE_PAGE_END)
-    panic("invalid huge page ptr (khugefree)");
+  if((pa % HUGE_PAGE_SIZE) || pa < HUGE_PAGE_START || pa + HUGE_PAGE_SIZE > HUGE_PAGE_END){
+    panic("khugefree: invalid huge page pointer");
+  }
 
   memset(v, 1, HUGE_PAGE_SIZE);
-
   r = (struct run*)v;
+
   if(khugemem.use_lock)
     acquire(&khugemem.lock);
   r->next = khugemem.freelist;
@@ -145,21 +146,14 @@ khugealloc(void)
   struct run *r;
 
   if(khugemem.use_lock)
-  {
     acquire(&khugemem.lock);
-  }
   r = khugemem.freelist;
   if(r)
-  {
     khugemem.freelist = r->next;
-  }
   if(khugemem.use_lock)
-  {
     release(&khugemem.lock);
-  }
 
-  if(r)
-  {
+  if(r){
     memset((char*)r, 5, HUGE_PAGE_SIZE);
     return (char*)r;
   }
